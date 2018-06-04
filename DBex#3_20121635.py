@@ -1,3 +1,4 @@
+#-*- coding: utf-8 -*-
 
 import datetime
 import time
@@ -41,6 +42,17 @@ def p1():
         doc['morph'] = morphing(doc['content'])
         db['news_freq'].update( {"_id":doc['_id']},doc)
 
+
+# HW-start
+def p2(url):
+    print("Function p2")
+    for doc in db['news_freq'].find():
+        print(doc)
+        if doc['url'] == url:
+            for morph in doc['morph']:
+                print(morph)
+            print(len(doc['morph']))
+
 def p3():
     col1 = db['news_freq']
     col2 = db['news_wordset']
@@ -54,6 +66,72 @@ def p3():
         new_doc['url'] = doc['url']
         col2.insert(new_doc)
 
+def p4(url):
+    wordset = []
+    for doc in db['news_wordset'].find():
+        if doc['url'] == url:
+            for word in doc['word_set']:
+                print(word)
+            print( len(doc['word_set']) )
+                
+def p5(length):
+    iter_count = length
+    total_wordset = {}
+    for doc in db['news_wordset'].find():
+        for word in doc['word_set']:
+            if word not in total_wordset:
+                total_wordset[frozenset([word])] = 0
+
+    min_sup = db['news_freq'].count()*(0.1)
+    key_size = 1
+    while iter_count:
+        new_wordset = {}
+
+        if key_size != 1:
+            for key1 in total_wordset.keys():
+                for key2 in total_wordset.keys():
+                    if key1 != key2:
+                        set3 = key1 | key2
+                        new_wordset[set3] = 0
+            total_wordset = new_wordset
+            for key, value in total_wordset.items():
+                if len(key) < key_size:
+                    del total_wordset[key]
+
+
+
+        for doc in db['news_freq'].find():
+            for key in total_wordset.keys():
+                if key.issubset(doc['morph']):
+                    total_wordset[key] += 1
+
+        for key, value in total_wordset.items():
+            if value < min_sup:
+                del total_wordset[key]
+
+
+        iter_count -= 1
+        key_size += 1
+
+
+        if key_size != length + 1:
+            continue
+        for key in total_wordset.keys():
+            item_set = list(key)
+            db['candidate_L' + str(key_size-1)].insert({
+                    "item_set"  : item_set,
+                    "support"   : total_wordset[key],
+            })
+
+def p6(length):
+
+    if length == 1:
+        pass
+
+    for doc in db['candidate_L' + str(length)]:
+        itemset = doc['item_set']
+
+# HW-end
 
 def make_stop_word():
     f = open("wordList.txt",'r')
